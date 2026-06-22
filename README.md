@@ -8,29 +8,53 @@
 ## 🎯 Project Overview
 
 This project implements a complete data pipeline for business analytics:
-- **Data Source**: CSV files containing company data (sales, employees, etc.)
+- **Data Source**: CSV files containing test data
 - **Orchestration**: Apache Airflow for automated ETL workflows
 - **Storage**: PostgreSQL for structured data storage
 - **Visualization**: Apache Superset for interactive dashboards
 - **Containerization**: Docker for reproducible deployment
 
 ## 🏗️ Architecture
-┌─────────────────────────────────────────────────────────────────┐
-│ Docker Network │
-├─────────────────────────────────────────────────────────────────┤
-│ │
-│ ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐ │
-│ │ Superset │ │ PostgreSQL │ │ Airflow │ │
-│ │ :8088 │ │ :5433 │ │ :8080 │ │
-│ └─────────────────┘ └─────────────────┘ └─────────────────┘ │
-│ │
-│ ┌─────────────────────────────────────────────────────────────┐│
-│ │ Shared Volume: /Users/username/data/ ││
-│ │ └── data.csv ││
-│ └─────────────────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────────────────┘
 
-text
+The project consists of three main services running in isolated Docker containers, connected via a dedicated Docker network.
+
+```mermaid
+graph LR
+    subgraph "Docker Network: data_network"
+        A[Superset<br>:8088] --> B[PostgreSQL<br>:5433]
+        C[Airflow<br>:8080] --> B
+        C --> D[Airflow DB<br>PostgreSQL]
+        A --> D
+    end
+
+    E[CSV File<br>data.csv] -->|Mounted Volume| B
+    E -->|Mounted Volume| C
+
+    F[User] -->|Browser| A
+    G[User] -->|Browser| C
+```
+
+### Service Overview
+
+| Service | Container Name | Port | Purpose |
+| :--- | :--- | :--- | :--- |
+| **Apache Superset** | `superset_app` | `8088` | Interactive dashboards and data visualization |
+| **PostgreSQL** | `postgres_data` | `5433` | Persistent storage for business data |
+| **Apache Airflow** | `airflow` | `8080` | Workflow orchestration and scheduled ETL |
+| **Airflow DB** | `airflow_db` | (internal) | PostgreSQL database for Airflow metadata |
+
+### Data Flow
+
+1.  **Data Source**: A CSV file (`data.csv`) is placed in the `./data/` directory on the host machine.
+2.  **Volume Mounting**: The `./data/` directory is mounted into both the `postgres_data` and `airflow` containers, making the CSV file accessible to both services.
+3.  **Scheduled ETL (Airflow)**:
+    - The Airflow DAG `refresh_dashboard` runs daily at 9:00 AM.
+    - It reads the CSV file from the mounted volume.
+    - It transforms and loads the data into the `company_data` table in PostgreSQL.
+4.  **Visualization (Superset)**:
+    - Superset connects to the PostgreSQL database using the hostname `postgres_data`.
+    - Dashboards are built on top of the `company_data` dataset.
+    - Auto-refresh is configured on the dashboard to show the latest data.
 
 ## 🚀 Quick Start
 
@@ -71,7 +95,6 @@ Visualize: Superset dashboards for business insights
 Automate: Airflow DAG runs daily at 9:00 AM
 📂 Project Structure
 
-text
 .
 ├── README.md
 ├── docker-compose.yml          # Docker services configuration
@@ -86,11 +109,13 @@ text
 ├── data/
 │   └── data.csv                # Source data (gitignored)
 └── notebooks/                  # Jupyter notebooks for exploration
+
 🔧 Available DAGs
 
 DAG Name	Description	Schedule
 refresh_dashboard	Updates company data from CSV	Daily at 9:00 AM
 ab_test_analysis	Runs AB-test calculations	Daily at 8:00 AM
+
 📈 Sample Dashboards
 
 Sales Overview: Revenue, profit, and growth trends
