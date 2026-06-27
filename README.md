@@ -116,6 +116,18 @@ DAG Name	Description	Schedule
 refresh_dashboard	Updates company data from CSV	Daily at 9:00 AM
 ab_test_analysis	Runs AB-test calculations	Daily at 8:00 AM
 
+🗄️ SQL Scripts (`scripts/sql_queries.sql`)
+
+This file contains a complete data lifecycle — from table creation to advanced analytics:
+
+- **Table Creation**: Defines the `user_sessions` schema with constraints (`CHECK`, `PRIMARY KEY`) to enforce data integrity.
+- **Data Import**: Loads data from a CSV file into the table using the `COPY` command.
+- **Analytical Queries**:
+  - **A/B Group Comparison**: Calculates percentage difference in average time spent between control (A) and treatment (B) groups.
+  - **Window Functions**: User ranking (`DENSE_RANK`), time difference with next user (`LAG`), and rolling averages (`AVG OVER`).
+  - **Transactions**: Atomic creation of the `user_engagement` table with engagement level labels for group B, followed by consistency validation (ACID compliance).
+- **Optimization**: Demonstrates practical use of `CHECK` constraints and transactional blocks to maintain referential integrity and data reliability.
+
 📈 Sample Dashboards
 
 Sales Overview: Revenue, profit, and growth trends
