@@ -80,9 +80,9 @@ WHERE group_type = 'A';
 -- 5 Atomic update: If a user from group B spends >120 seconds,
 -- mark them as "High Engagement" in the new table
 
-BEGIN; -- Начало транзакции
+BEGIN; -- Start of transaction
 
--- Создаём таблицу для меток
+-- Create a table for labels
 CREATE TABLE IF NOT EXISTS user_engagement (
     user_id INTEGER PRIMARY KEY,
     engagement_level VARCHAR(20)
