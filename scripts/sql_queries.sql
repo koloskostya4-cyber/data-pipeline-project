@@ -1,7 +1,7 @@
 DROP TABLE user_sessions;
 
 
--- Создаем таблицу
+-- Create a table
 CREATE TABLE IF NOT exists user_sessions (
     user_id INTEGER PRIMARY KEY,
     group_type VARCHAR(1) CHECK (group_type IN ('A', 'B')),
@@ -13,7 +13,7 @@ CREATE TABLE IF NOT exists user_sessions (
 );
 
 
--- Импорт данных из CSV
+-- Importing data from CSV
 COPY user_sessions
 FROM '/data/company/data.csv'
 DELIMITER ','
@@ -23,8 +23,8 @@ CSV header;
 SELECT COUNT(*) FROM user_sessions;
 
 
--- 1 Сравнение среднего времени на сайт для пользователей из группы A и B
---     с выделением разницы в процентах (агрегация + самосоединение)
+-- 1 Comparison of average time spent on the site for users in groups A and B
+-- with percentage differences highlighted (aggregation + self-join)
 WITH group_stats AS (
     SELECT 
         group_type,
@@ -40,7 +40,7 @@ SELECT
 FROM group_stats a
 JOIN group_stats b ON a.group_type = 'A' AND b.group_type = 'B';
 
--- 2 Топ-3 пользователя по времени на сайт в каждой группе
+-- 2 Тop-3 users by time on the site in each group
 SELECT 
     user_id,
     group_type,
@@ -57,7 +57,7 @@ FROM (
 WHERE rank_in_group <= 3
 ORDER BY group_type ASC, rank_in_group ASC;
 
--- 3 Разница во времени на сайт между соседними пользователями в одной группе, по убыванию
+-- 3 Difference in time spent on the site between adjacent users in the same group, in descending order
 SELECT 
     user_id,
     group_type,
@@ -67,7 +67,7 @@ SELECT
 FROM user_sessions
 ORDER BY time_spent DESC;
 
--- 4 Скользящее среднее Page Views (по 5 пользователей) для группы A.
+-- 4 Moving average Page Views (5 users) for group A.
 SELECT 
     user_id,
     page_views,
@@ -77,8 +77,8 @@ WHERE group_type = 'A';
 
 
 
--- 5 Атомарное обновление: если пользователь из группы B проводит >120 сек, 
---     помечаем его как "High Engagement" в новой таблице
+-- 5 Atomic update: If a user from group B spends >120 seconds,
+-- mark them as "High Engagement" in the new table
 
 BEGIN; -- Начало транзакции
 
@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS user_engagement (
     engagement_level VARCHAR(20)
 );
 
--- Вставляем или обновляем метки
+-- Inserting or updating labels
 INSERT INTO user_engagement (user_id, engagement_level)
 SELECT 
     user_id,
@@ -102,7 +102,7 @@ WHERE group_type = 'B'
 ON CONFLICT (user_id) 
 DO UPDATE SET engagement_level = EXCLUDED.engagement_level;
 
--- Проверяем согласованность (ACID: Consistency)
+-- Checking Consistency (ACID: Consistency)
 SELECT COUNT(*) FROM user_engagement 
 WHERE user_id IN (SELECT user_id FROM user_sessions WHERE group_type = 'B');
 
